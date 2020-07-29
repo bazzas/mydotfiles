@@ -1,0 +1,66 @@
+Config {
+        -- appearance
+         font = "xft:Hasklug Nerd Font Mono:pixelsize=14:antialias=true:hinting=true"
+       , bgColor = "#292929"
+       , fgColor = "#FDF6E3"
+       , position = Top
+       , border = BottomB
+       , borderColor = "#292929"
+
+       -- layout
+       , sepChar  =  "%"  -- delineator between plugin names and straight text
+       , alignSep = "}{"  -- separator between left-right alignment
+       , template = "%UnsafeStdinReader% }\
+                    \{ %homeDiskUsage% | %myvolume% | %multicpu% | %memory% | %date% | %kbd%  %trayerpad%"
+
+       , additionalFonts = ["Font Awesome 5 Pro:size=10:style=regular,Font Awesome 5 Brands:size=10:style=regular"]
+       , alpha = 255
+       , textOffset = -1
+       , iconOffset = -1
+       , lowerOnStart = True     -- send to bottom of window stack on start
+       , pickBroadest = False    -- choose widest display (multi-monitor)
+       , persistent = True       -- enable/disable hiding (True = disabled)
+       , hideOnStart = False     -- start with window unmapped (hidden)
+       , allDesktops = True      -- show on all desktops
+       , overrideRedirect = True -- set the Override Redirect flag (Xlib)
+
+       -- plugins
+       --   Numbers can be automatically colored according to their value. xmobar
+       --   decides color based on a three-tier/two-cutoff system, controlled by
+       --   command options:
+       --     --Low sets the low cutoff
+       --     --High sets the high cutoff
+       --
+       --     --low sets the color below --Low cutoff
+       --     --normal sets the color between --Low and --High cutoffs
+       --     --High sets the color above --High cutoff
+       --
+       --   The --template option controls how the plugin is displayed. Text
+       --   color can be set by enclosing in <fc></fc> tags. For more details
+       --   see http://projects.haskell.org/xmobar/#system-monitor-plugins.
+       , commands = [ Run Date           "%a <fc=#D79921>%I:%M</fc>" "date" 10
+                    , Run Kbd            [ ("ru" , "ru")
+                                         , ("us" , "us")
+                                         ]
+                    , Run MultiCpu       [ "--template" , ": <total0>%|<total1>%"
+                             , "--Low"      , "50"         -- units: %
+                             , "--High"     , "85"         -- units: %
+                             , "--low"      , "#A3BE8C"
+                             , "--normal"   , "#EBCB8B"
+                             , "--high"     , "#BF616A"
+                             ] 10
+                    , Run Memory         [ "--template" ,": <usedratio>%"
+                                         , "--Low"      , "20"        -- units: %
+                                         , "--High"     , "90"        -- units: %
+                                         , "--low"      , "#A3BE8C"
+                                         , "--normal"   , "#EBCB8B"
+                                         , "--high"     , "#BF616A"
+                                         ] 10
+                    , Run Com "/bin/bash" ["-c", "~/.xmonad/get-volume.sh"]  "myvolume" 1
+                    -- Script to show usage of the home directory disk space
+				            , Run Com "/bin/bash" ["-c", "df $HOME -h  --output=avail,size | tail -1 | xargs | tr ' ' '/' | xargs -0 echo :" ] "homeDiskUsage" 30
+                     -- Script that dynamically adjusts xmobar padding depending on number of trayer icons.
+                    , Run Com "/home/serhii/.config/xmobar/trayer-padding-icon.sh" [] "trayerpad" 20
+                    , Run UnsafeStdinReader
+                    ]
+       }
