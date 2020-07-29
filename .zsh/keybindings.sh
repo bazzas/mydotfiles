@@ -1,0 +1,1 @@
+bindkey -M viins 'df' vi-cmd-mode
