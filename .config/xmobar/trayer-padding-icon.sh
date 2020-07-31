@@ -46,5 +46,3 @@ fi
 
 # Output the icon tag for xmobar
 echo "<icon=${iconfile}/>"
-
-exit 0

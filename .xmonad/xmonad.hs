@@ -65,8 +65,8 @@ myModMask = mod4Mask -- Sets modkey to super/windows key
 myModKey = "super"
 myTerminal = "st" -- Sets default terminal
 myBorderWidth = 2 -- Sets border width for windows
-myNormalBorderColor = "#839496"
-myFocusedBorderColor = "#d69131"
+myNormalBorderColor = "#7c6f64"
+myFocusedBorderColor = "#d65d0e"
 myppCurrent = "#cb4b16"
 myppVisible = "#cb4b16"
 myppHidden = "#268bd2"
@@ -118,10 +118,10 @@ showWorkspace ws = ws
 myLogHook xmproc0 xmproc1  = do
     dynamicLogWithPP xmobarPP {
         ppOutput = \x -> hPutStrLn xmproc0 x >> hPutStrLn xmproc1 x
-        , ppCurrent = xmobarColor myppCurrent "" . clickWorkspace " [" "] "
+        , ppCurrent = xmobarColor myppCurrent "" . clickWorkspace "[" "] "
         , ppVisible = xmobarColor myppVisible "" . showWorkspace
-        , ppHidden = xmobarColor myppHidden "" . clickWorkspace " " " "
-        , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows "" . clickWorkspace " " " "
+        , ppHidden = xmobarColor myppHidden "" . clickWorkspace "" " "
+        , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows "" . clickWorkspace "" " "
         , ppTitle = xmobarColor  myppTitle "" . shorten 80
         , ppSep =  "<fc=#586E75> | </fc>"
         , ppUrgent = xmobarColor  myppUrgent "" . clickWorkspace "!" "!"
@@ -155,17 +155,24 @@ instance UrgencyHook LibNotifyUrgencyHook where
 myStartupHook = do
       spawnOnce "firefox"
       spawnOnce "subl"
+      -- set layout switcher on caps lock
       spawnOnce "setxkbmap -layout 'us,ru' -option 'grp:caps_toggle'"
+      --By default xmonad doesn't set a particular X cursor, which usually means the default X cursor will be used by
+      -- the system. To set your own custom cursor, use the xsetroot program
       spawnOnce "xsetroot -cursor_name left_ptr"
+      -- restore wallpapers
       spawnOnce "nitrogen --restore &"
       spawnOnce "compton &"
+      -- tray icons
       spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292d3e --height 20 &"
+      spawnOnce "/usr/bin/bash -c 'sleep 5; /usr/bin/xmodmap /home/serhii/.Xmodmap'" -- delay the execution so the xmodmap changes are not overwritten by setxkbmap.
+
 
 ------------------------------------------------------------------------
 -- layout
 ------------------------------------------------------------------------
 
-myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts ( onWorkspace "1" myTiled tiled ||| full ||| grid) ||| full
+myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts (tiled ||| full ||| grid) ||| full
   where
      -- full
      full = renamed [Replace "Full"]
@@ -285,6 +292,7 @@ myKeys =
      , ("<Print>", spawn "scrot '%Y-%m-%d_$wx$h.png' -e 'mv $f ~/Pictures/Screenshots/'")
      -- kill application
      , ("M-S-q", kill)
+     , ("M-S-c", io exitSuccess)
     ]
     ++ [ ("M-" ++ ws,   windows $ fixedView myWorkspaceScreens ws) | ws <-  myWorkspaces]
     ++ [ ("M-S-" ++ ws, windows $ W.shift ws)                     | ws <-  myWorkspaces]
@@ -293,21 +301,25 @@ myKeys =
 -- scratchpads
 ------------------------------------------------------------------------
 myScratchpads :: [NamedScratchpad]
-myScratchpads = [ NS "terminal" spawnTerm findTerm manageTerm
-        , NS "spotify" "spotify" (className =? "Spotify") defaultFloating
-            ]
-    where
-    role = stringProperty "WM_WINDOW_ROLE"
-    spawnTerm = myTerminal ++  " -name scratchpad"
-    findTerm = resource =? "scratchpad"
-    manageTerm = defaultFloating
+myScratchpads = [ NS "spotify" "spotify" (className =? "Spotify") defaultFloating
+                , NS "terminal" spawnTerm findTerm manageTerm
+                ]
+                where
+                    spawnTerm  = myTerminal ++ " -n scratchpad" ++ " -e tmux new-session \\; split-window -h \\; split-window -v \\; attach"
+                    findTerm   = resource =? "scratchpad"
+                    manageTerm = customFloating $ W.RationalRect l t w h
+                               where
+                                 h = 0.9
+                                 w = 0.9
+                                 t = 0.95 -h
+                                 l = 0.95 -w
+
 
 ------------------------------------------------------------------------
 -- main
 ------------------------------------------------------------------------
 
 main = do
-    spawn "xmodmap ~/.Xmodmap" -- remap keys (right alt to super)
     xmproc0 <- spawnPipe "/usr/bin/xmobar -x 0 /home/serhii/.config/xmobar/xmobarrc"
     xmproc1 <- spawnPipe "/usr/bin/xmobar -x 1 /home/serhii/.config/xmobar/xmobarrc"
     xmonad $ ewmh def

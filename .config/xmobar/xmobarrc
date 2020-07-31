@@ -38,9 +38,9 @@ Config {
        --   The --template option controls how the plugin is displayed. Text
        --   color can be set by enclosing in <fc></fc> tags. For more details
        --   see http://projects.haskell.org/xmobar/#system-monitor-plugins.
-       , commands = [ Run Date           "%a <fc=#D79921>%I:%M</fc>" "date" 10
-                    , Run Kbd            [ ("ru" , "ru")
-                                         , ("us" , "us")
+       , commands = [ Run Date           " %d %b %Y <fc=#D79921>%I:%M</fc>" "date" 10
+                    , Run Kbd            [ ("ru" , " ru")
+                                         , ("us" , " us")
                                          ]
                     , Run MultiCpu       [ "--template" , ": <total0>%|<total1>%"
                              , "--Low"      , "50"         -- units: %
@@ -49,7 +49,7 @@ Config {
                              , "--normal"   , "#EBCB8B"
                              , "--high"     , "#BF616A"
                              ] 10
-                    , Run Memory         [ "--template" ,": <usedratio>%"
+                    , Run Memory         [ "--template" ,": <usedratio>%"
                                          , "--Low"      , "20"        -- units: %
                                          , "--High"     , "90"        -- units: %
                                          , "--low"      , "#A3BE8C"
@@ -60,7 +60,7 @@ Config {
                     -- Script to show usage of the home directory disk space
 				            , Run Com "/bin/bash" ["-c", "df $HOME -h  --output=avail,size | tail -1 | xargs | tr ' ' '/' | xargs -0 echo :" ] "homeDiskUsage" 30
                      -- Script that dynamically adjusts xmobar padding depending on number of trayer icons.
-                    , Run Com "/home/serhii/.config/xmobar/trayer-padding-icon.sh" [] "trayerpad" 20
                     , Run UnsafeStdinReader
+                    , Run Com "/home/serhii/.config/xmobar/trayer-padding-icon.sh" [] "trayerpad" 20
                     ]
        }
