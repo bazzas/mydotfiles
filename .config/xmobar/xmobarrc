@@ -11,7 +11,7 @@ Config {
        , sepChar  =  "%"  -- delineator between plugin names and straight text
        , alignSep = "}{"  -- separator between left-right alignment
        , template = "%UnsafeStdinReader% }\
-                    \{ %homeDiskUsage% | %myvolume% | %multicpu% | %memory% | %date% | %kbd%  %trayerpad%"
+                    \{  %music%  %homeDiskUsage% | %myvolume% | %memory% | %date% | %kbd%  %trayerpad%"
 
        , additionalFonts = ["Font Awesome 5 Pro:size=10:style=regular,Font Awesome 5 Brands:size=10:style=regular"]
        , alpha = 255
@@ -57,6 +57,8 @@ Config {
                                          , "--high"     , "#BF616A"
                                          ] 10
                     , Run Com "/bin/bash" ["-c", "~/.xmonad/get-volume.sh"]  "myvolume" 1
+                    -- Current playing spotify track
+                    ,Run Com "bash" ["-c", "~/.xmonad/music.sh"] "music" 7
                     -- Script to show usage of the home directory disk space
 				            , Run Com "/bin/bash" ["-c", "df $HOME -h  --output=avail,size | tail -1 | xargs | tr ' ' '/' | xargs -0 echo :" ] "homeDiskUsage" 30
                      -- Script that dynamically adjusts xmobar padding depending on number of trayer icons.

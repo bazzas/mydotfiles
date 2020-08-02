@@ -6,17 +6,19 @@ For managing dotfiles the bare git repository technique is used. Read more [The 
 
 ## Prerequisites
 
-- Install zsh
+-   Install zsh
 
 ```bash
 sudo dnf install zsh
 ```
+
 Make zsh default shell:
+
 ```bash
 chsh -s $(which zsh)
 ```
 
-- Install st from [Luke's build of st - the simple (suckless) terminal](https://github.com/LukeSmithxyz/st)
+-   Install st from [Luke's build of st - the simple (suckless) terminal](https://github.com/LukeSmithxyz/st)
 
 ```bash
 git clone https://github.com/LukeSmithxyz/st
@@ -24,21 +26,21 @@ cd st
 sudo make install
 ```
 
-- Install xmonad and xmobar
+-   Install xmonad and xmobar
 
 ```bash
 sudo dnf install xmonad ghc-xmonad-contrib xmobar
 ```
 
-- Install slock to be able to lock screen
+-   Install slock to be able to lock screen
 
 ```bash
 sudo dnf install slock
 ```
 
-- Install nitrogen to restore wallpapers
-- Install compton for transparency
-- Install dunst for system notifications
+-   Install nitrogen to restore wallpapers
+-   Install compton for transparency
+-   Install dunst for system notifications
 
 ```bash
 sudo dnf install dunst

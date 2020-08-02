@@ -53,9 +53,9 @@ import XMonad.Layout.ResizableTile
 import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.PerWorkspace
 
--- regex
-import Text.Regex.TDFA
-import Text.Regex.TDFA.Text ()
+-- import qualified DBus as D
+-- import qualified DBus.Client as D
+-- import qualified Codec.Binary.UTF8.String as UTF8
 
 ------------------------------------------------------------------------
 -- variables
@@ -66,21 +66,22 @@ myModKey = "super"
 myTerminal = "st" -- Sets default terminal
 myBorderWidth = 2 -- Sets border width for windows
 myNormalBorderColor = "#7c6f64"
-myFocusedBorderColor = "#d65d0e"
-myppCurrent = "#cb4b16"
+myFocusedBorderColor ="#458588" -- "#d65d0e"
+myppCurrent = "#458588" -- "#689d6a"  -- "#d65d0e"
 myppVisible = "#cb4b16"
-myppHidden = "#268bd2"
+myppHidden = "#fbf1c7"
 myppHiddenNoWindows = "#93A1A1"
 myppTitle = "#FDF6E3"
 myppUrgent = "#DC322F"
+
+myPPActiveTextColor = "#292929"
+myPPInactiveTextColor = "#676E7D"
 
 
 myWorkspaces :: [String]
 myWorkspaces = show <$> [1..9] ++ [0]
 
--- myWorkspaceScreens :: String -> Int
--- myWorkspaceScreens ws = abs $ mod (read ws :: Int) 2 - 1 -- all odd numbers are shown on 0 monitor
-
+-- To fix workspaces to specific monitor
 myWorkspaceScreens ws
     | head ws >= '7' = 1
     | head ws == '0' = 1
@@ -93,37 +94,28 @@ windowCount = gets $ Just . show . length . W.integrate' . W.stack . W.workspace
 ------------------------------------------------------------------------
 -- LogHook to make workspaces in xmobar clickable
 ------------------------------------------------------------------------
--- myWorkspaces :: [String]
--- myWorkspaces =
---     "1: \xf02d " :
---     "2: \xf269 " :
---     "3" :
---     "4: \xf07b " :
---     "5" :
---     "6: \xf09b " :
---     "7" :
---     "8: \xf269 " :
---     "9: \xf1d8 " :
---     "0: \xf025 " :
---     []
 showWorkspace :: String -> String
-showWorkspace "1" = "1: \xf1c9" -- text editor
-showWorkspace "2" = "2: \xf269" -- firefox
-showWorkspace "3" = "3: \xf09b" -- git
-showWorkspace "4" = "4: \xf07b" -- files manager
-showWorkspace "7" = "7: \xf03d" -- video conference
-showWorkspace "9" = "9: \xf1d8" -- telegram (\xf198 - slack)
-showWorkspace ws = ws
+showWorkspace "1" = " 1: \xf1c9 " -- text editor
+showWorkspace "2" = " 2: \xf269 " -- firefox
+showWorkspace "3" = " 3: \xf09b " -- git
+showWorkspace "4" = " 4: \xf07b " -- files manager
+showWorkspace "7" = " 7: \xf03d " -- video conference
+showWorkspace "9" = " 9: \xf1d8 " -- telegram (\xf198 - slack)
+showWorkspace ws = " " ++ ws ++ " "
 
 myLogHook xmproc0 xmproc1  = do
     dynamicLogWithPP xmobarPP {
         ppOutput = \x -> hPutStrLn xmproc0 x >> hPutStrLn xmproc1 x
-        , ppCurrent = xmobarColor myppCurrent "" . clickWorkspace "[" "] "
-        , ppVisible = xmobarColor myppVisible "" . showWorkspace
-        , ppHidden = xmobarColor myppHidden "" . clickWorkspace "" " "
-        , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows "" . clickWorkspace "" " "
-        , ppTitle = xmobarColor  myppTitle "" . shorten 80
+        , ppCurrent = xmobarColor myPPActiveTextColor myppCurrent . clickWorkspace "" ""
+        , ppVisible = xmobarColor myppCurrent "" . showWorkspace
+        , ppHidden = xmobarColor myppHidden "" . clickWorkspace "" ""
+        , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows "" . clickWorkspace "" ""
+        -- shorten if it goes over 65 characters
+        , ppTitle = xmobarColor  myppTitle "" . shorten 65
         , ppSep =  "<fc=#586E75> | </fc>"
+
+        -- no separator between workspaces
+        , ppWsSep =  ""
         , ppUrgent = xmobarColor  myppUrgent "" . clickWorkspace "!" "!"
         , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
         , ppSort = fmap (namedScratchpadFilterOutWorkspace.) (ppSort def)
@@ -149,7 +141,7 @@ instance UrgencyHook LibNotifyUrgencyHook where
         safeSpawn "notify-send" [show name, "workspace " ++ idx]
 
 ------------------------------------------------------------------------
--- Startup hook
+---AUTOSTART
 ------------------------------------------------------------------------
 
 myStartupHook = do
@@ -164,7 +156,7 @@ myStartupHook = do
       spawnOnce "nitrogen --restore &"
       spawnOnce "compton &"
       -- tray icons
-      spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292d3e --height 20 &"
+      spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292929 --height 20 &"
       spawnOnce "/usr/bin/bash -c 'sleep 5; /usr/bin/xmodmap /home/serhii/.Xmodmap'" -- delay the execution so the xmodmap changes are not overwritten by setxkbmap.
 
 
@@ -289,7 +281,8 @@ myKeys =
      , ("<XF86AudioNext>", spawn "playerctl next")
 
      -- make a screenshot
-     , ("<Print>", spawn "scrot '%Y-%m-%d_$wx$h.png' -e 'mv $f ~/Pictures/Screenshots/'")
+     , ("<Print>", spawn "scrot `date +%Y-%m-%dT%H:%M:%S`.png -e 'mv $f ~/Pictures/Screenshots/'")
+     , ("C-<Print>", spawn "sleep 0.2; scrot `date +%Y-%m-%dT%H:%M:%S`.png -s -z -e 'mv $f ~/Pictures/Screenshots/'")
      -- kill application
      , ("M-S-q", kill)
      , ("M-S-c", io exitSuccess)
@@ -319,9 +312,24 @@ myScratchpads = [ NS "spotify" "spotify" (className =? "Spotify") defaultFloatin
 -- main
 ------------------------------------------------------------------------
 
+-- dbusOutput :: D.Client -> String -> IO ()
+-- dbusOutput dbus str = do
+--     let signal = (D.signal objectPath interfaceName memberName) {
+--             D.signalBody = [D.toVariant $ UTF8.decodeString str]
+--         }
+--     D.emit dbus signal
+--   where
+--     objectPath = D.objectPath_ "/org/xmonad/Log"
+--     interfaceName = D.interfaceName_ "org.xmonad.Log"
+--     memberName = D.memberName_ "Update"
+
+-- myLogHook2 :: D.Client -> PP
+-- myLogHook2 dbus = def {ppOutput = dbusOutput dbus}
+
 main = do
     xmproc0 <- spawnPipe "/usr/bin/xmobar -x 0 /home/serhii/.config/xmobar/xmobarrc"
     xmproc1 <- spawnPipe "/usr/bin/xmobar -x 1 /home/serhii/.config/xmobar/xmobarrc"
+    -- dbus <- D.connectSession
     xmonad $ ewmh def
         { manageHook = myManageHook <+> manageDocks
         , startupHook        = myStartupHook
@@ -334,19 +342,7 @@ main = do
         , normalBorderColor  = myNormalBorderColor
         , focusedBorderColor = myFocusedBorderColor
         , logHook            = myLogHook xmproc0 xmproc1
-        -- , logHook = dynamicLogWithPP xmobarPP
-        --                 { ppOutput = \x -> hPutStrLn xmproc0 x >> hPutStrLn xmproc1 x
-        --                 , ppCurrent = xmobarColor myppCurrent "" . clickWorkspace "[" "]" -- Current workspace in xmobar
-        --                 , ppVisible = xmobarColor myppVisible ""                -- Visible but not current workspace
-        --                 , ppHidden = xmobarColor myppHidden "" . clickWorkspace "+" ""   -- Hidden workspaces in xmobar
-        --                 , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows ""        -- Hidden workspaces (no windows)
-        --                 , ppTitle = xmobarColor  myppTitle "" . shorten 80     -- Title of active window in xmobar
-        --                 , ppSep =  "<fc=#586E75> | </fc>"                     -- Separators in xmobar
-        --                 , ppUrgent = xmobarColor  myppUrgent "" . clickWorkspace "!" "!"  -- Urgent workspace
-        --                 , ppExtras  = [windowCount]                           -- # of windows current workspace
-        --                 , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
-        --                 } >> updatePointer (0.25, 0.25) (0.25, 0.25)
-
-          }
-          `additionalKeysP` myKeys
+        -- , logHook = dynamicLogWithPP (myLogHook2 dbus)
+        }
+        `additionalKeysP` myKeys
 
