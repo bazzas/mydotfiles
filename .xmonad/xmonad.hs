@@ -39,10 +39,16 @@ import XMonad.Hooks.Place (placeHook, withGaps, smart)
 import XMonad.Hooks.UrgencyHook
 import XMonad.Hooks.DynamicProperty
 
+-- Provides hooks and actions that keep track of recently focused windows on a per
+--workspace basis and automatically refocus the last window on loss of the current
+-- (if appropriate as determined by user specified criteria).
+import XMonad.Hooks.RefocusLast
+
 -- actions
 import XMonad.Actions.CopyWindow -- for dwm window style tagging
 import XMonad.Actions.UpdatePointer -- update mouse postion
 import XMonad.Actions.CycleWS
+import qualified XMonad.Actions.DynamicWorkspaceOrder as DO
 
 -- layout
 import XMonad.Layout.Renamed (renamed, Rename(Replace))
@@ -52,6 +58,7 @@ import XMonad.Layout.GridVariants
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.PerWorkspace
+
 
 -- import qualified DBus as D
 -- import qualified DBus.Client as D
@@ -154,7 +161,7 @@ myStartupHook = do
       spawnOnce "xsetroot -cursor_name left_ptr"
       -- restore wallpapers
       spawnOnce "nitrogen --restore &"
-      spawnOnce "compton &"
+      -- spawnOnce "compton &"
       -- tray icons
       spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292929 --height 20 &"
       spawnOnce "/usr/bin/bash -c 'sleep 5; /usr/bin/xmodmap /home/serhii/.Xmodmap'" -- delay the execution so the xmodmap changes are not overwritten by setxkbmap.
@@ -201,16 +208,20 @@ myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts
 -- Window rules:
 ------------------------------------------------------------------------
 
-myManageHook = insertPosition Below Newer <+> (composeAll . concat $
-    [ [isDialog --> doCenterFloat]
-    , [isFullscreen --> doRectFloat (W.RationalRect 0 0 1 1)]
-    , [resource =? i --> doIgnore | i <- myIgnores]
-    , [resource =? r --> doFloat | r <- myRFloats]
-    , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 0) | x <- my1Shifts]
-    , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 1) | x <- my2Shifts]
-    , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 6) | x <- my7Shifts]
-    , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 8) | x <- my9Shifts]
-    ]) <+> namedScratchpadManageHook myScratchpads
+myManageHook = (isDialog --> doF W.swapUp)
+    <+> insertPosition Below Newer
+    <+> (composeAll . concat $
+            [ [isDialog --> doCenterFloat]
+            , [isFullscreen --> doRectFloat (W.RationalRect 0 0 1 1)]
+            , [resource =? i --> doIgnore | i <- myIgnores]
+            , [resource =? r --> doFloat | r <- myRFloats]
+            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 0) | x <- my1Shifts]
+            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 1) | x <- my2Shifts]
+            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 6) | x <- my7Shifts]
+            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 8) | x <- my9Shifts]
+            ]
+        )
+    <+> namedScratchpadManageHook myScratchpads
     -- [className =? "Firefox" --> doShift ( myWorkspaces !! 1 )
     -- , (className =? "firefox" <&&> resource =? "Dialog") --> doFloat  -- Float Firefox Dialog
     -- , className =? "Firefox" <&&> resource =? "Toolkit" --> doFloat -- firefox pip
@@ -221,7 +232,7 @@ myManageHook = insertPosition Below Newer <+> (composeAll . concat $
     -- ]
     where
         doShiftAndGo = doF . liftM2 (.) W.view W.shift
-        myRFloats = ["Dialog", "Tookkit"]
+        myRFloats = ["Dialog", "Toolkit", "dragon"]
         myIgnores = ["desktop_window", "kdesktop"]
         my1Shifts = ["Sublime_text"]
         my2Shifts = ["Firefox", "Chromium-browser", "Vivaldi-stable"]
@@ -258,8 +269,8 @@ myKeys =
      , ("S-M-l", spawn "slock") -- lock the screen
      , ("S-M-t", withFocused $ windows . W.sink) -- flatten floating window to tiled
      , ("S-M-f", withFocused $ \f -> windows =<< appEndo `fmap` runQuery doFullFloat f) -- full float window
-     , ("M-C-<Space>", namedScratchpadAction myScratchpads "terminal")
-     , ("M-`", namedScratchpadAction myScratchpads "spotify")
+     , ("M-`", namedScratchpadAction myScratchpads "terminal")
+     , ("M-C-<Space>", namedScratchpadAction myScratchpads "spotify")
      , ("M-<Return>", spawn myTerminal)
      -- Move focused window to next/prev monitor
      , ("M-S-.", shiftNextScreen)
@@ -286,6 +297,9 @@ myKeys =
      -- kill application
      , ("M-S-q", kill)
      , ("M-S-c", io exitSuccess)
+
+     , ("M-<L>", DO.moveTo Prev HiddenNonEmptyWS)
+     , ("M-<R>", DO.moveTo Next HiddenNonEmptyWS)
     ]
     ++ [ ("M-" ++ ws,   windows $ fixedView myWorkspaceScreens ws) | ws <-  myWorkspaces]
     ++ [ ("M-S-" ++ ws, windows $ W.shift ws)                     | ws <-  myWorkspaces]
@@ -298,7 +312,7 @@ myScratchpads = [ NS "spotify" "spotify" (className =? "Spotify") defaultFloatin
                 , NS "terminal" spawnTerm findTerm manageTerm
                 ]
                 where
-                    spawnTerm  = myTerminal ++ " -n scratchpad" ++ " -e tmux new-session \\; split-window -h \\; split-window -v \\; attach"
+                    spawnTerm  = myTerminal ++ " -n scratchpad" -- ++ " -e tmux new-session \\; split-window -h \\; attach"
                     findTerm   = resource =? "scratchpad"
                     manageTerm = customFloating $ W.RationalRect l t w h
                                where
@@ -327,14 +341,14 @@ myScratchpads = [ NS "spotify" "spotify" (className =? "Spotify") defaultFloatin
 -- myLogHook2 dbus = def {ppOutput = dbusOutput dbus}
 
 main = do
-    xmproc0 <- spawnPipe "/usr/bin/xmobar -x 0 /home/serhii/.config/xmobar/xmobarrc"
-    xmproc1 <- spawnPipe "/usr/bin/xmobar -x 1 /home/serhii/.config/xmobar/xmobarrc"
+    xmproc0 <- spawnPipe "/usr/bin/xmobar -x 0 /home/serhii/.config/xmobar/xmobar0.hs"
+    xmproc1 <- spawnPipe "/usr/bin/xmobar -x 1 /home/serhii/.config/xmobar/xmobar1.hs"
     -- dbus <- D.connectSession
     xmonad $ ewmh def
         { manageHook = myManageHook <+> manageDocks
         , startupHook        = myStartupHook
-        , layoutHook         = myLayout
-        , handleEventHook    = handleEventHook desktopConfig <+> myHandleEventHook
+        , layoutHook         = refocusLastLayoutHook $ myLayout
+        , handleEventHook    = refocusLastWhen myPred <+> handleEventHook desktopConfig <+> myHandleEventHook
         , workspaces         = myWorkspaces
         , borderWidth        = myBorderWidth
         , terminal           = myTerminal
@@ -345,4 +359,6 @@ main = do
         -- , logHook = dynamicLogWithPP (myLogHook2 dbus)
         }
         `additionalKeysP` myKeys
+        where
+            myPred = refocusingIsActive <||> isFloat
 

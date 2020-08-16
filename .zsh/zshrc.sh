@@ -85,3 +85,4 @@ alias s_rw='cd /home/serhii/projects/remote-working-frontend && npm run start:sp
 alias s_sl='cd /home/serhii/projects/ssa-leave-frontend && npm run start:spa'
 alias s_em='cd /home/serhii/projects/equipment-assign-frontend && npm run start:spa'
 
+alias shn='shutdown -h now'

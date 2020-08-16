@@ -38,7 +38,7 @@ Config {
        --   The --template option controls how the plugin is displayed. Text
        --   color can be set by enclosing in <fc></fc> tags. For more details
        --   see http://projects.haskell.org/xmobar/#system-monitor-plugins.
-       , commands = [ Run Date           " %d %b %Y <fc=#D79921>%I:%M</fc>" "date" 10
+       , commands = [ Run Date           " %d %b %Y <fc=#D79921>%H:%M</fc>" "date" 10
                     , Run Kbd            [ ("ru" , " ru")
                                          , ("us" , " us")
                                          ]
