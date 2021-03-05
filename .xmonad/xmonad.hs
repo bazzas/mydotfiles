@@ -49,15 +49,17 @@ import XMonad.Actions.CopyWindow -- for dwm window style tagging
 import XMonad.Actions.UpdatePointer -- update mouse postion
 import XMonad.Actions.CycleWS
 import qualified XMonad.Actions.DynamicWorkspaceOrder as DO
+import XMonad.Actions.DwmPromote       -- zoom swap dwm style
 
 -- layout
 import XMonad.Layout.Renamed (renamed, Rename(Replace))
-import XMonad.Layout.NoBorders
+import XMonad.Layout.NoBorders (smartBorders, noBorders)
 import XMonad.Layout.Spacing
 import XMonad.Layout.GridVariants
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.PerWorkspace
+import XMonad.Layout.ThreeColumns
 
 
 -- import qualified DBus as D
@@ -70,7 +72,7 @@ import XMonad.Layout.PerWorkspace
 
 myModMask = mod4Mask -- Sets modkey to super/windows key
 myModKey = "super"
-myTerminal = "st" -- Sets default terminal
+myTerminal =  "st" -- "alacritty" -- Sets default terminal
 myBorderWidth = 2 -- Sets border width for windows
 myNormalBorderColor = "#7c6f64"
 myFocusedBorderColor ="#458588" -- "#d65d0e"
@@ -85,15 +87,39 @@ myPPActiveTextColor = "#292929"
 myPPInactiveTextColor = "#676E7D"
 
 
+-- Special
+background="#0e0f12"
+foreground="#d8d5d5"
+cursor="#d8d5d5"
+
+-- Colors
+color0="#0e0f12"
+color1="#7E7F7F"
+color2="#B74532"
+color3="#C1935A"
+color4="#5D748C"
+color5="#708A98"
+color6="#9C9A9F"
+color7="#d8d5d5"
+color8="#979595"
+color9="#7E7F7F"
+color10="#B74532"
+color11="#C1935A"
+color12="#5D748C"
+color13="#708A98"
+color14="#9C9A9F"
+color15="#d8d5d5"
+
+
 myWorkspaces :: [String]
 myWorkspaces = show <$> [1..9] ++ [0]
 
 -- To fix workspaces to specific monitor
-myWorkspaceScreens ws
-    | head ws >= '7' = 1
-    | head ws == '0' = 1
-    | head ws == '2' = 1
-    | otherwise = 0 -- 1, 3-6 is on left monitor
+myWorkspaceScreens ws = 0
+    -- | head ws >= '7' = 1
+    -- | head ws == '0' = 1
+    -- | head ws == '2' = 1
+    -- | otherwise = 0 -- 1, 3-6 is on left monitor
 
 windowCount = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset
 
@@ -112,18 +138,18 @@ showWorkspace ws = " " ++ ws ++ " "
 
 myLogHook xmproc0 xmproc1  = do
     dynamicLogWithPP xmobarPP {
-        ppOutput = \x -> hPutStrLn xmproc0 x >> hPutStrLn xmproc1 x
-        , ppCurrent = xmobarColor myPPActiveTextColor myppCurrent . clickWorkspace "" ""
-        , ppVisible = xmobarColor myppCurrent "" . showWorkspace
-        , ppHidden = xmobarColor myppHidden "" . clickWorkspace "" ""
-        , ppHiddenNoWindows = xmobarColor  myppHiddenNoWindows "" . clickWorkspace "" ""
+        ppOutput = \x -> hPutStrLn xmproc0 x
+        , ppCurrent = xmobarColor color2  "" . clickWorkspace "" ""
+        , ppVisible = xmobarColor color7 "" . showWorkspace
+        , ppHidden = xmobarColor color7 "" . clickWorkspace "" ""
+        , ppHiddenNoWindows = xmobarColor  color1 "" . clickWorkspace "" ""
         -- shorten if it goes over 65 characters
-        , ppTitle = xmobarColor  myppTitle "" . shorten 65
+        , ppTitle = xmobarColor  color7 "" . shorten 65
         , ppSep =  "<fc=#586E75> | </fc>"
 
         -- no separator between workspaces
         , ppWsSep =  ""
-        , ppUrgent = xmobarColor  myppUrgent "" . clickWorkspace "!" "!"
+        , ppUrgent = xmobarColor  color3 "" . clickWorkspace "!" "!"
         , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
         , ppSort = fmap (namedScratchpadFilterOutWorkspace.) (ppSort def)
         , ppExtras  = [windowCount]
@@ -161,9 +187,9 @@ myStartupHook = do
       spawnOnce "xsetroot -cursor_name left_ptr"
       -- restore wallpapers
       spawnOnce "nitrogen --restore &"
-      -- spawnOnce "compton &"
+      spawnOnce "compton &"
       -- tray icons
-      spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292929 --height 20 &"
+      spawnOnce "trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 --tint 0x292929 --height 18 &"
       spawnOnce "/usr/bin/bash -c 'sleep 5; /usr/bin/xmodmap /home/serhii/.Xmodmap'" -- delay the execution so the xmodmap changes are not overwritten by setxkbmap.
 
 
@@ -171,7 +197,7 @@ myStartupHook = do
 -- layout
 ------------------------------------------------------------------------
 
-myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts (tiled ||| full ||| grid) ||| full
+myLayout =  avoidStruts (threeCol ||| tiled ||| full ||| grid) ||| full
   where
      -- full
      full = renamed [Replace "Full"]
@@ -180,11 +206,7 @@ myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts
      -- tiled
      tiled = renamed [Replace "Tall"]
            $ spacingRaw True (Border 10 0 10 0) True (Border 0 10 0 10) True
-           $ ResizableTall 1 (3/100) (1/2) []
-    -- myTiled
-     myTiled = renamed [Replace "Tall"]
-           $ spacingRaw True (Border 10 0 10 0) True (Border 0 10 0 10) True
-           $ ResizableTall 1 (3/100) (4/5) []
+           $ noBorders (ResizableTall 1 (3/100) (1/2) [])
 
      -- grid
      grid = renamed [Replace "Grid"]
@@ -194,6 +216,8 @@ myLayout = onWorkspace "2" (avoidStruts (full ||| tiled) ||| full) $ avoidStruts
      -- bsp
      bsp = renamed [Replace "BSP"]
          $ emptyBSP
+
+     threeCol = renamed [Replace "Three Columns"] $ spacingRaw True (Border 10 0 10 0) True (Border 0 10 0 10) True $ ThreeColMid 1 (1/100) (4/10)
 
      -- The default number of windows in the master pane
      nmaster = 1
@@ -216,9 +240,9 @@ myManageHook = (isDialog --> doF W.swapUp)
             , [resource =? i --> doIgnore | i <- myIgnores]
             , [resource =? r --> doFloat | r <- myRFloats]
             , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 0) | x <- my1Shifts]
-            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 1) | x <- my2Shifts]
+            -- , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 1) | x <- my2Shifts]
             , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 6) | x <- my7Shifts]
-            , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 8) | x <- my9Shifts]
+            -- , [(className =? x <||> title =? x <||> resource =? x) --> doShiftAndGo (myWorkspaces !! 8) | x <- my9Shifts]
             ]
         )
     <+> namedScratchpadManageHook myScratchpads
@@ -235,9 +259,9 @@ myManageHook = (isDialog --> doF W.swapUp)
         myRFloats = ["Dialog", "Toolkit", "dragon"]
         myIgnores = ["desktop_window", "kdesktop"]
         my1Shifts = ["Sublime_text"]
-        my2Shifts = ["Firefox", "Chromium-browser", "Vivaldi-stable"]
+        -- my2Shifts = ["Firefox", "Chromium-browser", "Vivaldi-stable"]
         my7Shifts = ["Microsoft Teams - Preview"]
-        my9Shifts = ["TelegramDesktop", "Slack"]
+        -- my9Shifts = ["TelegramDesktop", "Slack"]
 
 -----------------------------------------------------------------------
 -- Handle event hook
@@ -272,6 +296,7 @@ myKeys =
      , ("M-`", namedScratchpadAction myScratchpads "terminal")
      , ("M-C-<Space>", namedScratchpadAction myScratchpads "spotify")
      , ("M-<Return>", spawn myTerminal)
+     , ("M-S-<Return>", dwmpromote)
      -- Move focused window to next/prev monitor
      , ("M-S-.", shiftNextScreen)
      , ("M-S-,", shiftPrevScreen)
@@ -296,7 +321,10 @@ myKeys =
      , ("C-<Print>", spawn "sleep 0.2; scrot `date +%Y-%m-%dT%H:%M:%S`.png -s -z -e 'mv $f ~/Pictures/Screenshots/'")
      -- kill application
      , ("M-S-q", kill)
-     , ("M-S-c", io exitSuccess)
+     , ("M-S-c q", io exitSuccess)                -- Quits xmonad
+     , ("M-S-c s", spawn "poweroff")              -- Shutdown
+     , ("M-S-c r", spawn "reboot")                -- Reboot
+
 
      , ("M-<L>", DO.moveTo Prev HiddenNonEmptyWS)
      , ("M-<R>", DO.moveTo Next HiddenNonEmptyWS)
@@ -312,14 +340,9 @@ myScratchpads = [ NS "spotify" "spotify" (className =? "Spotify") defaultFloatin
                 , NS "terminal" spawnTerm findTerm manageTerm
                 ]
                 where
-                    spawnTerm  = myTerminal ++ " -n scratchpad" -- ++ " -e tmux new-session \\; split-window -h \\; attach"
-                    findTerm   = resource =? "scratchpad"
-                    manageTerm = customFloating $ W.RationalRect l t w h
-                               where
-                                 h = 0.9
-                                 w = 0.9
-                                 t = 0.95 -h
-                                 l = 0.95 -w
+                    spawnTerm  = myTerminal ++ " -t scratchpad" -- ++ " -e tmux new-session \\; split-window -h \\; attach"
+                    findTerm   = title =? "scratchpad"
+                    manageTerm = customFloating $ W.RationalRect (1/6) (1/6) (2/3) (2/3)
 
 
 ------------------------------------------------------------------------
@@ -353,8 +376,8 @@ main = do
         , borderWidth        = myBorderWidth
         , terminal           = myTerminal
         , modMask            = myModMask
-        , normalBorderColor  = myNormalBorderColor
-        , focusedBorderColor = myFocusedBorderColor
+        , normalBorderColor  = color0
+        , focusedBorderColor = color2
         , logHook            = myLogHook xmproc0 xmproc1
         -- , logHook = dynamicLogWithPP (myLogHook2 dbus)
         }
